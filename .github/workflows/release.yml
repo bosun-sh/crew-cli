@@ -21,7 +21,7 @@ jobs:
       - run: bun audit
       - run: npm pack
       - run: sha256sum *.tgz > SHA256SUMS
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: crew-cli-candidate
           path: |
