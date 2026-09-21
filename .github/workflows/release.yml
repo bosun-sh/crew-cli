@@ -1,0 +1,31 @@
+name: Package release candidate
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2.1.2
+        with:
+          bun-version: 1.3.9
+      - run: test "${GITHUB_REF_NAME#v}" = "$(node -p "require('./package.json').version")"
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun audit
+      - run: npm pack
+      - run: sha256sum *.tgz > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crew-cli-candidate
+          path: |
+            *.tgz
+            SHA256SUMS
+            install.sh
+          if-no-files-found: error
