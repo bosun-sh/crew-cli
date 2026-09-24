@@ -7,9 +7,9 @@ node -e 'if (Number(process.versions.node.split(".")[0]) < 24) process.exit(1)' 
 command -v npm >/dev/null 2>&1 || { echo 'Install npm with your Node.js distribution.' >&2; exit 1; }
 
 # Accept the reviewed local pilot artifact until this exact version is published.
-package=${1:-@bosun-sh/crew-cli@0.3.0-rc.1}
+package=${1:-@bosun-sh/crew-cli@0.4.0-rc.3}
 case "$package" in
-  @bosun-sh/crew-cli@0.3.0-rc.1) ;;
+  @bosun-sh/crew-cli@0.4.0-rc.3) ;;
   /*.tgz|./*.tgz) [ -f "$package" ] || { echo 'Package file not found.' >&2; exit 1; } ;;
   *) echo 'Pass an absolute or ./ path to the reviewed CLI tarball.' >&2; exit 1;;
 esac

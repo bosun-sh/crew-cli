@@ -3,12 +3,33 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute, tempDir, testConfig } from "./helpers.js";
+import { initializeEmptyRepository, repositoryRoot } from '../src/repository.js';
 
 function git(root: string, ...args: string[]): string {
   const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
   if (result.status !== 0) throw new Error(result.stderr);
   return result.stdout.trim();
 }
+
+test('explicit empty initialization is resumable and never stages developer files', () => {
+  const root = tempDir(), remote = tempDir(), state = tempDir();
+  git(root, 'init', '-b', 'main'); git(remote, 'init', '--bare'); git(root, 'remote', 'add', 'origin', remote);
+  expect(repositoryRoot(root)).toBe(root);
+  writeFileSync(join(root, 'private.txt'), 'developer work');
+  expect(() => initializeEmptyRepository(root, state)).toThrow('no staged/untracked files');
+  expect(spawnSync('git', ['show-ref'], { cwd: remote }).status).toBe(1);
+});
+
+test('empty base publication keeps one commit across setup retries', () => {
+  const root = tempDir(), remote = tempDir(), state = tempDir();
+  git(root, 'init', '-b', 'main'); git(remote, 'init', '--bare'); git(root, 'remote', 'add', 'origin', remote);
+  expect(initializeEmptyRepository(root, state)).toBe('main');
+  const sha = git(root, 'rev-parse', 'HEAD');
+  expect(git(root, 'ls-tree', '-r', 'HEAD')).toBe('');
+  expect(initializeEmptyRepository(root, state)).toBe('main');
+  expect(git(root, 'rev-parse', 'HEAD')).toBe(sha);
+  expect(git(remote, 'rev-parse', 'refs/heads/main')).toBe(sha);
+});
 
 test("isolated worktrees survive replay without changing a dirty developer checkout", async () => {
   const root = tempDir();

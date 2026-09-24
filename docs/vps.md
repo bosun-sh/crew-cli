@@ -1,5 +1,15 @@
 # VPS release candidate guide
 
+## Login and boards in rc.2
+
+Run `crew login` to authorize against `https://crew.bosun.sh`. Desktop sessions print a URL and try the browser; SSH/headless sessions print the URL for a laptop or phone. `--no-browser` only prints. `--browser` explicitly launches and prints a fallback URL if launching fails. The confirmation code is always printed. No inbound port or copied Crew API key is needed.
+
+After repository-local setup, `crew tasks` and `crew goals` open the repository's respective Cloud board using the same browser behavior. Use `--list` for terminal tables or `--json` for automation; these never launch a browser. `crew status` still reports worker availability. Purchase credits before setup if desired; repository tools and model keys do not need Cloud UI configuration.
+
+New goals require one **Confirm understanding** action in their Cloud detail page. Automatic internal review is the default: the independent reviewer runs now, and qualified Jev joins it when enabled server-side. `--manual-review` adds human stage checkpoints. Scope changes require a new understanding confirmation; all prior costs remain. On GitHub, submit **Request changes** with inline feedback or use `/crew revise`; ordinary discussion does not authorize spending. Commits and PR descriptions identify Crew, while the authenticated customer remains the PR author.
+
+For the Antartiko pilot, run `crew setup` in each product repository (subdirectories resolve to the same root). Cloud receives the connection automatically. `crew status --json`, `crew tasks --json`, and `crew goal add "Outcome" --verify "Checks" --max-cost USD --json` support assistant-driven use. Install the bundled `skills/crew` folder into the assistant's skill directory. Authentication, credits and OS permissions remain human steps. Explicit `--initialize-empty` can seed an empty unborn repository without publishing developer files.
+
 Crew does not provide a machine or VPS. You can start on your existing macOS or Linux computer; keep it awake and online for scheduled work. For your own always-on VPS, use a dedicated Linux account with Node.js 24 or newer, Git, GitHub CLI (`gh`), and a systemd user session. Crew executes with this account's permissions. Clone one repository before connecting; existing staged and unstaged work stays in that checkout while Crew uses separate worktrees.
 
 On Debian/Ubuntu, install Git, GitHub CLI and the user-session prerequisites:
@@ -21,8 +31,8 @@ Install Node 24+ using your host's supported installation method if the version 
 Copy the reviewed RC tarball and its checksum file to the VPS, verify the checksum, then install that exact file. This RC is a local artifact; these commands do not assume registry publication.
 
 ```sh
-sha256sum bosun-sh-crew-cli-0.3.0-rc.1.tgz
-npm install --global ./bosun-sh-crew-cli-0.3.0-rc.1.tgz
+sha256sum bosun-sh-crew-cli-0.4.0-rc.3.tgz
+npm install --global ./bosun-sh-crew-cli-0.4.0-rc.3.tgz
 crew --version
 ```
 
@@ -47,6 +57,24 @@ crew status
 ```
 
 Connect checks GitHub write access and authentication without temporary environment tokens or an SSH agent. Repeating connect resumes provisioning and service installation. Connections are bound to the Dashboard and organization; changing organization requires logout and reconnect. Store the GitHub CLI credentials under the dedicated account, with private permissions. On Linux without a keyring, `gh` may use its private configuration file.
+
+## Execution settings for a new stack
+
+An empty checkout cannot identify its future package manager. Before submitting the scaffold goal, explicitly authorize the binaries and command timeout required by the selected stack. For example, for a reviewed npm-based project:
+
+```sh
+crew setup --initialize-empty --commands git,npm,node,sed,cat,ls,find,patch --timeout-seconds 300
+```
+
+Use `--initialize-empty` only for the initial empty repository. For an already connected repository, finish or cancel active work before changing settings:
+
+```sh
+crew connect --commands git,npm,node,sed,cat,ls,find,patch --timeout-seconds 300
+```
+
+The prompt displays the complete replacement allowlist, timeout and publication permission. Add `pnpm`, `bun` or another executable only if the selected stack needs it and it is installed. These settings are host ceilings; Cloud policy may narrow them further. `--yes` skips confirmation only when the displayed policy change is already authorized. Setup forwards these same flags to connection provisioning.
+
+`crew status` and `crew status --json` report the saved execution policy so operators can verify it. Reconnecting without options preserves the saved policy and connection identity. Explicit changes restart the worker without creating another Cloud install. If installation fails, rerun connect to retry; do not delete connection state. `--no-publish` disables publication and remains disabled on subsequent reconnects. Linux service refresh restarts the process so it loads the updated configuration.
 
 ## Delegate and review
 

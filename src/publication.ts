@@ -54,7 +54,7 @@ export async function publishWorkspace(input: unknown, context: ToolContext, dep
   const refreshed = await authorizePublication(context, { ...objectInput(value.ownership), branch, repoPath, allowReconciliation: true }, deps.fetch ?? fetch);
   if (refreshed.readOnly) return { status: "published", branch, remoteBranchUrl, compareUrl, reason: "Branch push completed; authorization ended before PR creation." };
   const title = bounded(value.title, 240, "title");
-  const body = `${bounded(value.body, 60_000, "body")}\n\nCrew work: ${context.config.dashboardUrl}/work/${encodeURIComponent(authorized.workId)}`;
+  const body = `${bounded(value.body, 60_000, "body")}\n\nImplemented by Crew using the repository owner's authorized worker.\nCrew work: ${context.config.dashboardUrl}/work/${encodeURIComponent(authorized.workId)}`;
   try {
     runGh(context, ["pr", "create", "--repo", repo, "--head", branch, "--base", authorized.baseBranch, "--title", title, "--body", body, ...(value.outcome === "complete" ? [] : ["--draft"])]);
   } catch (error) {

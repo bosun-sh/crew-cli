@@ -24,7 +24,8 @@ export function installWorker(id: string): void {
     command("launchctl", ["bootstrap", domain, path]);
   } else {
     command("systemctl", ["--user", "daemon-reload"]);
-    command("systemctl", ["--user", "enable", "--now", `crew-${id}.service`]);
+    command("systemctl", ["--user", "enable", `crew-${id}.service`]);
+    command("systemctl", ["--user", "restart", `crew-${id}.service`]);
   }
 }
 

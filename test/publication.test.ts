@@ -62,7 +62,7 @@ test('only explicit revision commands by write collaborators can launch revision
     if (args.includes('--slurp')) return JSON.stringify([[{ id: 1, user: { login: 'reader' }, body: '/crew revise Please change it' }, { id: 2, user: { login: 'writer' }, body: '/crew revise Fix the test' }]]);
     return args[1]?.includes('/writer/') ? 'write' : 'read';
   });
-  expect(requests).toEqual([{ id: 2, author: 'writer', feedback: 'Fix the test' }]);
+  expect(requests).toEqual([{ id: 2, author: 'writer', feedback: 'Fix the test', source: 'comment' }]);
 });
 
 test('service files escape paths without embedding credentials', () => {
@@ -70,4 +70,16 @@ test('service files escape paths without embedding credentials', () => {
   expect(serviceDefinition(id, 'darwin', '/path & space/node', '/app/cli.js', '/logs')).toContain('/path &amp; space/node');
   expect(serviceDefinition(id, 'linux', '/path %/node', '/app/cli.js', '/logs')).toContain('"/path %%/node"');
   expect(serviceDefinition(id, 'linux', '/node', '/cli.js', '/logs')).not.toContain('CREW_NODE_API_KEY');
+});
+
+test('submitted changes-requested reviews include complete inline feedback and exclude bots', () => {
+  const run = (_context: { root: string }, args: string[]) => {
+    const endpoint = args[1]!;
+    if (endpoint.endsWith('/reviews')) return JSON.stringify([[{ id: 2, state: 'CHANGES_REQUESTED', body: 'Fix tenant access', user: { login: 'writer', type: 'User' } }, { id: 3, state: 'PENDING', user: { login: 'writer' } }, { id: 4, state: 'CHANGES_REQUESTED', user: { login: 'bot', type: 'Bot' } }]]);
+    if (endpoint.endsWith('/reviews/2/comments')) return JSON.stringify([[{ path: 'src/auth.ts', line: 4, body: 'Check organization here' }]]);
+    if (endpoint.endsWith('/permission')) return 'write';
+    return '[]';
+  };
+  expect(authorizedRevisions('/repo', 'example/app', 1, run)).toEqual([{ id: 2, source: 'review', author: 'writer', feedback: 'Fix tenant access\n\nsrc/auth.ts:4\nCheck organization here' }]);
+  expect(() => authorizedRevisions('/repo', 'example/app', 1, (context, args) => args[1]!.endsWith('/reviews/2/comments') ? '{}' : run(context, args))).toThrow('Incomplete');
 });
